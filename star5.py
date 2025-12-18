@@ -12,3 +12,5 @@ for i in range(1, n+1):
         color = random.choice(colors)
         stars += color + '*' + reset
     print(spaces + stars)
+
+print("\nMerry Christmas!")
