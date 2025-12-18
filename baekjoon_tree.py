@@ -1,40 +1,50 @@
 import sys
 
-input = sys.stdin.read
-data = input().split()
-N = int(data[0])
-R = int(data[1])
-G = int(data[2])
-B = int(data[3])
+memo = {}
 
-# DP[level][r][g][b] = 경우의 수
-# level: 0 to N, r,g,b: 0 to R,G,B
-dp = [[[[0 for _ in range(B+1)] for _ in range(G+1)] for _ in range(R+1)] for _ in range(N+1)]
-dp[0][0][0][0] = 1
+fact = [1] * 11
+for i in range(2, 11):
+    fact[i] = fact[i-1] * i
 
-for level in range(1, N+1):
-    k = level
-    # 각 레벨 k에 대해 가능한 배치
-    # 가능한 divisor: k를 나누는 수, 1,2,3 (색이 3개)
-    for d in range(1, 4):  # d: 각 색의 장난감 수
-        if k % d != 0:
-            continue
-        c = k // d  # 색의 수, c <= 3
-        if c > 3:
-            continue
-        # 색 조합: 빨강, 초록, 파랑 중 c개를 선택, 각 d개씩
-        from itertools import combinations
-        colors = ['R', 'G', 'B']
-        for comb in combinations(colors, c):
-            dr = d if 'R' in comb else 0
-            dg = d if 'G' in comb else 0
-            db = d if 'B' in comb else 0
-            # 이제 dp 업데이트
-            for r in range(R - dr + 1):
-                for g in range(G - dg + 1):
-                    for b in range(B - db + 1):
-                        if dp[level-1][r][g][b] > 0:
-                            dp[level][r + dr][g + dg][b + db] += dp[level-1][r][g][b]
+def solve(lv, r, g, b, N):
+    # 모든 레벨을 다 채운 경우
+    if lv > N:
+        return 1
+    
+    state = (lv, r, g, b)
+    if state in memo:
+        return memo[state]
+    
+    res = 0
+    
+    # 1. 한 가지 색만 사용하는 경우
+    if r >= lv: res += solve(lv + 1, r - lv, g, b, N)
+    if g >= lv: res += solve(lv + 1, r, g - lv, b, N)
+    if b >= lv: res += solve(lv + 1, r, g, b - lv, N)
+    
+    # 2. 두 가지 색을 사용하는 경우 (lv가 2로 나누어 떨어져야 함)
+    if lv % 2 == 0:
+        cnt = lv // 2
+        comb = fact[lv] // (fact[cnt] * fact[cnt])
+        if r >= cnt and g >= cnt: res += solve(lv + 1, r - cnt, g - cnt, b, N) * comb
+        if r >= cnt and b >= cnt: res += solve(lv + 1, r - cnt, g, b - cnt, N) * comb
+        if g >= cnt and b >= cnt: res += solve(lv + 1, r, g - cnt, b - cnt, N) * comb
+            
+    # 3. 세 가지 색을 사용하는 경우 (lv가 3으로 나누어 떨어져야 함)
+    if lv % 3 == 0:
+        cnt = lv // 3
+        comb = fact[lv] // (fact[cnt] * fact[cnt] * fact[cnt])
+        if r >= cnt and g >= cnt and b >= cnt:
+            res += solve(lv + 1, r - cnt, g - cnt, b - cnt, N) * comb
+            
+    memo[state] = res
+    return res
 
-# 최종 답: dp[N][R][G][B]
-print(dp[N][R][G][B])
+# 입력
+n, r, g, b = map(int, sys.stdin.readline().split())
+
+# 장난감 총합이 트리 완성에 필요한 개수보다 적으면 0 출력
+if n * (n + 1) // 2 > r + g + b:
+    print(0)
+else:
+    print(solve(1, r, g, b, n))
